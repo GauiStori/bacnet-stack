@@ -70,6 +70,10 @@
 #include "bacnet/basic/ucix/ucix.h"
 #endif /* defined(BAC_UCI) */
 
+// 2024-05-15 mods4bts
+#include "bacnet/basic/object/calendar.h"
+#include "bacnet/basic/object/time_value.h"
+
 /** @file server/main.c  Example server application using the BACnet Stack. */
 
 /* (Doxygen note: The next two lines pull all the following Javadoc
@@ -390,6 +394,17 @@ int main(int argc, char *argv[])
         printf("BACnet Device Name: %s\n", DeviceName.value);
     }
     dlenv_init();
+
+// 2024-05-15 mods4bts
+#if defined(BACDL_BIP)
+    printf("BACnet/IP Port: %d\n", bip_get_port());
+#endif
+
+    Calendar_Create(1);
+    Calendar_Create(2);
+    Time_Value_Create(1);
+    Time_Value_Create(2);
+
     atexit(datalink_cleanup);
     /* broadcast an I-Am on startup */
     Send_I_Am(&Handler_Transmit_Buffer[0]);

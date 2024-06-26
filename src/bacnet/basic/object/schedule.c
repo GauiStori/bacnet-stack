@@ -262,7 +262,8 @@ int Schedule_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
             bitstring_set_bit(&bit_string, STATUS_FLAG_IN_ALARM, false);
             bitstring_set_bit(&bit_string, STATUS_FLAG_FAULT, false);
             bitstring_set_bit(&bit_string, STATUS_FLAG_OVERRIDDEN, false);
-            bitstring_set_bit(&bit_string, STATUS_FLAG_OUT_OF_SERVICE, false);
+            // 2024-05-15 mods4bts
+            bitstring_set_bit(&bit_string, STATUS_FLAG_OUT_OF_SERVICE, CurrentSC->Out_Of_Service);
             apdu_len = encode_application_bitstring(&apdu[0], &bit_string);
             break;
         case PROP_RELIABILITY:
@@ -313,13 +314,6 @@ bool Schedule_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     int len;
     BACNET_APPLICATION_DATA_VALUE value;
 
-    /* 	BACnet Testing Observed Incident oi00106
-            Out of service was not supported by Schedule object
-            Revealed by BACnet Test Client v1.8.16 (
-       www.bac-test.com/bacnet-test-client-download ) BITS: BIT00032 Any
-       discussions can be directed to edward@bac-test.com Please feel free to
-       remove this comment when my changes accepted after suitable time for
-            review by all interested parties. Say 6 months -> September 2016 */
     /* decode the some of the request */
     len = bacapp_decode_application_data(
         wp_data->application_data, wp_data->application_data_len, &value);
@@ -354,6 +348,12 @@ bool Schedule_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
                     wp_data->object_instance, value.type.Boolean);
             }
             break;
+
+        case PROP_EFFECTIVE_PERIOD:
+            // 2024-05-15 mods4bts - adding this so we can support YABE which writes effective period before modifying any schedule
+            status = true;
+            break;
+
         default:
             if (property_lists_member(
                 Schedule_Properties_Required, Schedule_Properties_Optional, 

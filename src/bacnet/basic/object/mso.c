@@ -85,7 +85,8 @@ static const int Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
 #endif
     -1 };
 
-static const int Properties_Optional[] = { PROP_STATE_TEXT, PROP_DESCRIPTION,
+static const int Properties_Optional[] = { PROP_STATE_TEXT, PROP_DESCRIPTION, 
+    PROP_RELIABILITY,   // 2024-05-15 mods4bts
     -1 };
 
 static const int Properties_Proprietary[] = { -1 };
@@ -299,7 +300,8 @@ static int Multistate_Output_Priority_Array_Encode(
             apdu_len = encode_application_null(apdu);
         } else {
             value = pObject->Priority_Array[priority];
-            apdu_len = encode_application_enumerated(apdu, value);
+            // 2024-05-15 mods4bts
+            apdu_len = encode_application_unsigned(apdu, value);
         }
     }
 
@@ -1025,8 +1027,12 @@ int Multistate_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
             apdu_len = BACNET_STATUS_ERROR;
             break;
     }
+
     /*  only array properties can have array options */
-    if ((apdu_len >= 0) && (rpdata->object_property != PROP_STATE_TEXT) &&
+    // 2024-05-15 mods4bts
+    if ((apdu_len >= 0) && 
+    (rpdata->object_property != PROP_STATE_TEXT) &&
+    (rpdata->object_property != PROP_PRIORITY_ARRAY) &&
         (rpdata->array_index != BACNET_ARRAY_ALL)) {
         rpdata->error_class = ERROR_CLASS_PROPERTY;
         rpdata->error_code = ERROR_CODE_PROPERTY_IS_NOT_AN_ARRAY;

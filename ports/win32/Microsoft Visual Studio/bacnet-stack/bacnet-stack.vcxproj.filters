@@ -594,6 +594,21 @@
     <ClCompile Include="..\..\rs485.c">
       <Filter>Source Files\ports\win32</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\bacnet\basic\object\blo.c">
+      <Filter>Source Files\src\bacnet\basic\object</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\bacnet\basic\object\calendar.c">
+      <Filter>Source Files\src\bacnet\basic\object</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\bacnet\basic\object\lsz.c">
+      <Filter>Source Files\src\bacnet\basic\object</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\bacnet\basic\object\time_value.c">
+      <Filter>Source Files\src\bacnet\basic\object</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\bacnet\basic\object\bitstring_value.c">
+      <Filter>Source Files\src\bacnet\basic\object</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\bacnet\abort.h">
@@ -639,9 +654,6 @@
       <Filter>Source Files\src\bacnet</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\bacnet\bacdevobjpropref.h">
-      <Filter>Source Files\src\bacnet</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\src\bacnet\bacenum.h">
       <Filter>Source Files\src\bacnet</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\bacnet\bacerror.h">
@@ -1162,6 +1174,36 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\bacnet\basic\sys\linear.h">
       <Filter>Source Files\src\bacnet\basic\sys</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\bacnet\basic\object\blo.h">
+      <Filter>Source Files\src\bacnet\basic\object</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\bacnet\basic\object\calendar.h">
+      <Filter>Source Files\src\bacnet\basic\object</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\bacnet\basic\object\lsz.h">
+      <Filter>Source Files\src\bacnet\basic\object</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\bacnet\basic\object\structured_view.h">
+      <Filter>Source Files\src\bacnet\basic\object</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\bacnet\basic\object\time_value.h">
+      <Filter>Source Files\src\bacnet\basic\object</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\bacnet\bacnet_stack_exports.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\bacnet\bits.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\bacnet\bytes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\bacnet\config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\bacnet\basic\object\bitstring_value.h">
+      <Filter>Source Files\src\bacnet\basic\object</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -62,12 +62,20 @@ static uint8_t RxBuffer[DLMSTP_MPDU_MAX];
 /* that a node must wait for a station to begin replying to a */
 /* confirmed request: 255 milliseconds. (Implementations may use */
 /* larger values for this timeout, not to exceed 300 milliseconds.) */
-static uint16_t Treply_timeout = 260;
+
+// 2024-05-15 mods4bts
+// look in mstpdef.h for this
+// static uint16_t Treply_timeout = 260;
+
 /* The time without a DataAvailable or ReceiveError event that a node must */
 /* wait for a remote node to begin using a token or replying to a Poll For */
 /* Master frame: 20 milliseconds. (Implementations may use larger values for */
 /* this timeout, not to exceed 35 milliseconds.) */
-static uint8_t Tusage_timeout = 30;
+
+// 2024-05-15 mods4bts
+// look in mstpdef.h for this.
+// static uint8_t Tusage_timeout = 30;
+
 /* local timer for tracking silence on the wire */
 static struct mstimer Silence_Timer;
 

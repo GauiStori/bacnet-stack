@@ -671,7 +671,22 @@ void dlenv_init(void)
         apdu_retries_set((uint8_t)strtol(pEnv, NULL, 0));
     }
     /* === Initialize the Datalink Here === */
-    if (!datalink_init(getenv("BACNET_IFACE"))) {
+    // 2024-05-15 mods4bts
+    bool rc;
+    char* ifp = getenv("BACNET_IFACE");
+    if ( ifp != NULL) {
+        rc = datalink_init(ifp);
+    }
+    else
+    {
+#ifdef _MSC_VER
+        rc = datalink_init("127.0.0.1");
+#else
+        rc = datalink_init(ifp);
+#endif
+    }
+    if (!rc)
+    {
         exit(1);
     }
 #if (MAX_TSM_TRANSACTIONS)

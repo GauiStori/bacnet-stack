@@ -88,3 +88,16 @@ extern int bip_get_local_netmask(
     static_assert(false, "Unsupported BACNET_OBJECT_TABLE for this platform")
 
 #endif
+
+
+/*
+
+    Ed's punchlist
+
+    2023-09-27 
+    Allow deviceID to be specified in environment
+    (allow all parameters to be specified in environment, or command line)
+    print IP, Port, etc. on start screen(s)
+    print cwd on start screen
+    
+*/

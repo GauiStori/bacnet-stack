@@ -21,10 +21,25 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- *********************************************************************/
-#include <stddef.h>
+ *********************************************************************
+ *
+ *   Modifications Copyright (C) 2017 BACnet Interoperability Testing Services, Inc.
+ *
+ *   July 1, 2017    BITS    Modifications to this file have been made in compliance
+ *                           with original licensing.
+ *
+ *   This file contains changes made by BACnet Interoperability Testing
+ *   Services, Inc. These changes are subject to the permissions,
+ *   warranty terms and limitations above.
+ *   For more information: info@bac-test.com
+ *   For access to source code:  info@bac-test.com
+ *          or      www.github.com/bacnettesting/bacnet-stack
+ *
+ ****************************************************************************************/
+ 
 #include <stdint.h>
 #include <stdio.h>
+#include <time.h>
 /* BACnet Stack defines - first */
 #include "bacnet/bacdef.h"
 /* BACnet Stack API */
@@ -50,73 +65,76 @@ BACNET_RECIPIENT_LIST Time_Sync_Recipients[MAX_TIME_SYNC_RECIPIENTS];
 static BACNET_DATE_TIME Next_Sync_Time;
 #endif
 
-#if PRINT_ENABLED
-static void show_bacnet_date_time(BACNET_DATE *bdate, BACNET_TIME *btime)
+static void show_bacnet_date_time(BACNET_DATE* bdate, BACNET_TIME* btime)
 {
-    /* show the date received */
-    fprintf(stderr, "%u", (unsigned)bdate->year);
-    fprintf(stderr, "/%u", (unsigned)bdate->month);
-    fprintf(stderr, "/%u", (unsigned)bdate->day);
-    /* show the time received */
-    fprintf(stderr, " %02u", (unsigned)btime->hour);
-    fprintf(stderr, ":%02u", (unsigned)btime->min);
-    fprintf(stderr, ":%02u", (unsigned)btime->sec);
-    fprintf(stderr, ".%02u", (unsigned)btime->hundredths);
-    fprintf(stderr, "\r\n");
+	/* show the date received */
+	fprintf(stderr, "%u", (unsigned)bdate->year);
+	fprintf(stderr, "/%u", (unsigned)bdate->month);
+	fprintf(stderr, "/%u", (unsigned)bdate->day);
+	/* show the time received */
+	fprintf(stderr, " %02u", (unsigned)btime->hour);
+	fprintf(stderr, ":%02u", (unsigned)btime->min);
+	fprintf(stderr, ":%02u", (unsigned)btime->sec);
+	fprintf(stderr, ".%02u", (unsigned)btime->hundredths);
+	fprintf(stderr, "\r\n");
 }
-#endif
+
+
+// Set this to 1 if you wish to maintain 'BACnet Time' independently to Operating System time
+// This will avoid manipulating the OS time - and all the unpleasant side-effects, especially, for example, 
+// during testing of schedules, trend logs, calendars etc.
 
 void handler_timesync(
-    uint8_t *service_request, uint16_t service_len, BACNET_ADDRESS *src)
+    uint8_t* service_request,
+    uint16_t service_len,
+    BACNET_ADDRESS* src)
 {
-    int len = 0;
-    BACNET_DATE bdate = { 0 };
-    BACNET_TIME btime = { 0 };
+    BACNET_DATE_TIME bdtLocal;
+    BACNET_DATE_TIME bdtUTC;
 
-    (void)src;
     (void)service_len;
-    len = timesync_decode_service_request(
-        service_request, service_len, &bdate, &btime);
-    if (len > 0) {
-        if (datetime_is_valid(&bdate, &btime)) {
+    (void)src;
+
+    int len = timesync_decode_service_request(
+        service_request, service_len, &bdtLocal.date, &bdtLocal.time);
+    if (len > 0)
+    {
+        if (datetime_is_valid(&bdtLocal.date, &bdtLocal.time))
+        {
             /* fixme: only set the time if off by some amount */
 #if PRINT_ENABLED
-            fprintf(stderr, "Received TimeSyncronization Request\r\n");
-            show_bacnet_date_time(&bdate, &btime);
-#else
-            /* FIXME: set the time?
-               Maybe only set the time if off by some amount */
+            fprintf(stderr, "Received TimeSyncronization (Local) Request\r\n");
+            show_bacnet_date_time(&bdtLocal.date, &bdtLocal.time);
 #endif
+
+            datetime_local_set(&bdtLocal);
         }
     }
-
-    return;
 }
+
 
 void handler_timesync_utc(
     uint8_t *service_request, uint16_t service_len, BACNET_ADDRESS *src)
 {
-    int len = 0;
-    BACNET_DATE bdate;
-    BACNET_TIME btime;
+    BACNET_DATE_TIME bdtUTC;
 
     (void)src;
     (void)service_len;
-    len = timesync_decode_service_request(
-        service_request, service_len, &bdate, &btime);
+
+    int len = timesync_decode_service_request(
+        service_request, service_len, &bdtUTC.date, &bdtUTC.time);
     if (len > 0) {
-        if (datetime_is_valid(&bdate, &btime)) {
+        if (datetime_is_valid(&bdtUTC.date, &bdtUTC.time)) {
 #if PRINT_ENABLED
-            fprintf(stderr, "Received TimeSyncronization Request\r\n");
+            fprintf(stderr, "Received TimeSyncronization (UTC) Request\r\n");
             show_bacnet_date_time(&bdate, &btime);
 #endif
-            /* FIXME: set the time?
-               only set the time if off by some amount */
+
+            datetime_utc_set(&bdtUTC);
         }
     }
-
-    return;
 }
+
 
 #if defined(BACNET_TIME_MASTER)
 /** Handle a request to list all the timesync recipients.

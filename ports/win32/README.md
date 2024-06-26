@@ -1,3 +1,8 @@
+# BITS's Summary 
+
+This branch is for the _minimum set_ of repairs to Steve's stack necessary to pass as many of the BTS tests as is reasonably possible.
+
+
 # Win32 ports for BACnet
 
 This directory contains a demo program that compiles with a Win32 compiler.

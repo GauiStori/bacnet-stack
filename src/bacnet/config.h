@@ -131,6 +131,9 @@
 #define PRINT_ENABLED 0
 #endif
 
+// 2024-05-15 mods4bts
+#define INTRINSIC_REPORTING     1
+
 /* BACAPP decodes WriteProperty service requests
    Choose the datatypes that your application supports */
 #if !(defined(BACAPP_ALL) || \
@@ -297,6 +300,10 @@
 
 #ifndef BACNET_USE_SIGNED       /* Do we need any signed integers */
 #define BACNET_USE_SIGNED 0
+#endif
+
+#ifndef BACFILE
+#define BACFILE 1
 #endif
 
 #endif

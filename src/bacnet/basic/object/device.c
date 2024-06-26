@@ -7,10 +7,25 @@
  * @section LICENSE
  * Copyright (C) 2005 Steve Karg <skarg@users.sourceforge.net>
  * SPDX-License-Identifier: MIT
- */
+ *****************************************************************************************
+ *
+ *   Modifications Copyright (C) 2017 BACnet Interoperability Testing Services, Inc.
+ *
+ *   July 1, 2017    BITS    Modifications to this file have been made in compliance
+ *                           with original licensing.
+ *
+ *   This file contains changes made by BACnet Interoperability Testing
+ *   Services, Inc. These changes are subject to the permissions,
+ *   warranty terms and limitations above.
+ *   For more information: info@bac-test.com
+ *   For access to source code:  info@bac-test.com
+ *          or      www.github.com/bacnettesting/bacnet-stack
+ *
+ ****************************************************************************************/
+ 
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
+#include <string.h>     /* for memmove */
 #include <time.h>       /* for timezone, localtime, gettimeofday */
 /* BACnet Stack defines - first */
 #include "bacnet/bacdef.h"
@@ -19,11 +34,11 @@
 #include "bacnet/bacapp.h"
 #include "bacnet/datetime.h"
 #include "bacnet/apdu.h"
-#include "bacnet/wp.h" /* WriteProperty handling */
-#include "bacnet/rp.h" /* ReadProperty handling */
-#include "bacnet/dcc.h" /* DeviceCommunicationControl handling */
+#include "bacnet/wp.h"             /* WriteProperty handling */
+#include "bacnet/rp.h"             /* ReadProperty handling */
+#include "bacnet/dcc.h"            /* DeviceCommunicationControl handling  */ 
 #include "bacnet/version.h"
-#include "bacnet/basic/object/device.h" /* me */
+#include "bacnet/basic/object/device.h"         /* me  */ 
 #include "bacnet/basic/services.h"
 #include "bacnet/datalink/datalink.h"
 #include "bacnet/basic/binding/address.h"
@@ -1172,16 +1187,77 @@ bool Device_Object_Name_Copy(BACNET_OBJECT_TYPE object_type,
 
 // See USE_DECOUPLED_BACNET_TIME
 #if 0
-static void Update_Current_Time(void)
-{
-    datetime_local(
-        &Local_Date, &Local_Time, &UTC_Offset, &Daylight_Savings_Status);
+static void Update_Current_Time(
+    void) {
+    struct tm* tblock = NULL;
+#if defined(_MSC_VER)
+    time_t tTemp;
+#else
+    struct timeval tv;
+#endif
+
+    /*
+    struct tm
+
+    int    tm_sec   Seconds [0,60].
+    int    tm_min   Minutes [0,59].
+    int    tm_hour  Hour [0,23].
+    int    tm_mday  Day of month [1,31].
+    int    tm_mon   Month of year [0,11].
+    int    tm_year  Years since 1900.
+    int    tm_wday  Day of week [0,6] (Sunday =0).
+    int    tm_yday  Day of year [0,365].
+    int    tm_isdst Daylight Savings flag.
+    */
+
+#if defined(_MSC_VER)
+    tTemp = time(NULL) + emulationOffset;
+    tblock = (struct tm*)localtime(&tTemp);
+#else
+    if (gettimeofday(&tv, NULL) == 0) {
+        tblock = (struct tm*)localtime((const time_t*)&tv.tv_sec + emulationOffset);
+    }
+#endif
+
+    if (tblock) {
+        datetime_set_date(&Local_Date, (uint16_t)tblock->tm_year + 1900,
+            (uint8_t)tblock->tm_mon + 1, (uint8_t)tblock->tm_mday);
+#if !defined(_MSC_VER)
+        datetime_set_time(&Local_Time, (uint8_t)tblock->tm_hour,
+            (uint8_t)tblock->tm_min, (uint8_t)tblock->tm_sec,
+            (uint8_t)(tv.tv_usec / 10000));
+#else
+        datetime_set_time(&Local_Time, (uint8_t)tblock->tm_hour,
+            (uint8_t)tblock->tm_min, (uint8_t)tblock->tm_sec, 0);
+#endif
+        if (tblock->tm_isdst) {
+            Daylight_Savings_Status = true;
+        }
+        else {
+            Daylight_Savings_Status = false;
+        }
+
+#if !defined(_MSC_VER)
+        /* note: timezone is declared in <time.h> stdlib. */
+        UTC_Offset = timezone / 60;
+#else
+        //  todo 0 - restore
+        //TIME_ZONE_INFORMATION tziOld;
+        //GetTimeZoneInformation(&tziOld);
+        //UTC_Offset = tziOld.Bias;
+#endif
+
+    }
+    else {
+        datetime_date_wildcard_set(&Local_Date);
+        datetime_time_wildcard_set(&Local_Time);
+        Daylight_Savings_Status = false;
+    }
 }
 #endif
 
-
-void Device_getCurrentDateTime(BACNET_DATE_TIME *DateTime)
-{
+void Device_getCurrentDateTime(
+    BACNET_DATE_TIME* DateTime) {
     datetime_local(&DateTime->date, &DateTime->time, NULL, NULL);
 }
 
@@ -1891,8 +1967,12 @@ static bool Device_Write_Property_Object_Name(
         if (Device_Valid_Object_Name(&value, &object_type, &object_instance)) {
             if ((object_type == wp_data->object_type) &&
                 (object_instance == wp_data->object_instance)) {
+
                 /* writing same name to same object */
-                status = true;
+                // status = true;
+                // 2023-11-28 EKH: which may, or may not be allowed, depending on the object's implementation. So proceed with the attempt, anyway, so as
+                // not to give a false impression.
+                status = Object_Write_Property(wp_data);
             } else {
                 /* name already exists in some object */
                 wp_data->error_class = ERROR_CLASS_PROPERTY;
