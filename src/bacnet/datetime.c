@@ -993,7 +993,7 @@ bool datetime_utc_to_local(BACNET_DATE_TIME *local_time,
 }
 
 /**
- * @brief Converts UTC to local time
+ * @brief Converts local time to UTC
  * @param utc_time - the BACnet Date and Time structure to hold UTC time
  * @param local_time - the BACnet Date and Time structure to hold local time
  * @param utc_offset_minutes - number of minutes offset from UTC

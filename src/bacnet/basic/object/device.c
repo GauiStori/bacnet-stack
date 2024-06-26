@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>       /* for timezone, localtime, gettimeofday */
 /* BACnet Stack defines - first */
 #include "bacnet/bacdef.h"
 /* BACnet Stack API */
@@ -561,14 +562,13 @@ static char Description[MAX_DEV_DESC_LEN + 1] = "server";
 /* static uint8_t Max_Segments_Accepted = 0; */
 /* VT_Classes_Supported */
 /* Active_VT_Sessions */
-static BACNET_TIME Local_Time; /* rely on OS, if there is one */
-static BACNET_DATE Local_Date; /* rely on OS, if there is one */
-/* NOTE: BACnet UTC Offset is inverse of common practice.
-   If your UTC offset is -5hours of GMT,
-   then BACnet UTC offset is +5hours.
-   BACnet UTC offset is expressed in minutes. */
-static int16_t UTC_Offset = 5 * 60;
-static bool Daylight_Savings_Status = false; /* rely on OS */
+
+// See USE_DECOUPLED_BACNET_TIME static BACNET_TIME Local_Time; /* rely on OS, if there is one */
+// See USE_DECOUPLED_BACNET_TIME static BACNET_DATE Local_Date; /* rely on OS, if there is one */
+
+// See USE_DECOUPLED_BACNET_TIME int16_t UTC_Offset = 5 * 60;
+// See USE_DECOUPLED_BACNET_TIME bool Daylight_Savings_Status = false;
+
 #if defined(BACNET_TIME_MASTER)
 static bool Align_Intervals;
 static uint32_t Interval_Minutes;
@@ -1169,35 +1169,39 @@ bool Device_Object_Name_Copy(BACNET_OBJECT_TYPE object_type,
     return found;
 }
 
+
+// See USE_DECOUPLED_BACNET_TIME
+#if 0
 static void Update_Current_Time(void)
 {
     datetime_local(
         &Local_Date, &Local_Time, &UTC_Offset, &Daylight_Savings_Status);
 }
+#endif
+
 
 void Device_getCurrentDateTime(BACNET_DATE_TIME *DateTime)
 {
-    Update_Current_Time();
-
-    DateTime->date = Local_Date;
-    DateTime->time = Local_Time;
+    datetime_local(&DateTime->date, &DateTime->time, NULL, NULL);
 }
 
 int32_t Device_UTC_Offset(void)
 {
-    Update_Current_Time();
-
-    return UTC_Offset;
+    int16_t offset;
+    datetime_local(NULL, NULL, &offset, NULL);
+    return offset ;
 }
 
-void Device_UTC_Offset_Set(int16_t offset)
-{
-    UTC_Offset = offset;
-}
+//void Device_UTC_Offset_Set(int16_t offset)
+//{
+//    UTC_Offset = offset;
+//}
 
 bool Device_Daylight_Savings_Status(void)
 {
-    return Daylight_Savings_Status;
+    bool dstStat;
+    datetime_local(NULL, NULL, NULL, &dstStat);
+    return dstStat;
 }
 
 #if defined(BACNET_TIME_MASTER)
@@ -1286,6 +1290,8 @@ int Device_Read_Property_Local(BACNET_READ_PROPERTY_DATA *rpdata)
     uint8_t *apdu = NULL;
     struct object_functions *pObject = NULL;
     uint16_t apdu_max = 0;
+    BACNET_TIME Local_Time;
+    BACNET_DATE Local_Date;
 
     if ((rpdata == NULL) || (rpdata->application_data == NULL) ||
         (rpdata->application_data_len == 0)) {
@@ -1343,21 +1349,22 @@ int Device_Read_Property_Local(BACNET_READ_PROPERTY_DATA *rpdata)
                 encode_application_character_string(&apdu[0], &char_string);
             break;
         case PROP_LOCAL_TIME:
-            Update_Current_Time();
-            apdu_len = encode_application_time(&apdu[0], &Local_Time);
+            if (datetime_local(NULL, &Local_Time, NULL, NULL))
+            {
+                apdu_len = encode_application_time(&apdu[0], &Local_Time);
+            }
             break;
         case PROP_UTC_OFFSET:
-            Update_Current_Time();
-            apdu_len = encode_application_signed(&apdu[0], UTC_Offset);
+            apdu_len = encode_application_signed(&apdu[0], datetime_UTC_Offset_get() );
             break;
         case PROP_LOCAL_DATE:
-            Update_Current_Time();
-            apdu_len = encode_application_date(&apdu[0], &Local_Date);
+            if (datetime_local(&Local_Date, NULL, NULL, NULL))
+            {
+                apdu_len = encode_application_date(&apdu[0], &Local_Date);
+            }
             break;
         case PROP_DAYLIGHT_SAVINGS_STATUS:
-            Update_Current_Time();
-            apdu_len =
-                encode_application_boolean(&apdu[0], Daylight_Savings_Status);
+            apdu_len = encode_application_boolean(&apdu[0], datetime_DST_get());
             break;
         case PROP_PROTOCOL_VERSION:
             apdu_len = encode_application_unsigned(
@@ -1756,14 +1763,14 @@ bool Device_Write_Property_Local(BACNET_WRITE_PROPERTY_DATA *wp_data)
             status = write_property_type_valid(
                 wp_data, &value, BACNET_APPLICATION_TAG_SIGNED_INT);
             if (status) {
-                if ((value.type.Signed_Int < (12 * 60)) &&
-                    (value.type.Signed_Int > (-12 * 60))) {
-                    Device_UTC_Offset_Set(value.type.Signed_Int);
-                    status = true;
-                } else {
-                    wp_data->error_class = ERROR_CLASS_PROPERTY;
-                    wp_data->error_code = ERROR_CODE_VALUE_OUT_OF_RANGE;
-                }
+                status = datetime_UTC_Offset_set(value.type.Signed_Int, wp_data );
+            }
+            break;
+        case PROP_DAYLIGHT_SAVINGS_STATUS:
+            status = write_property_type_valid(
+                wp_data, &value, BACNET_APPLICATION_TAG_BOOLEAN);
+            if (status) {
+                status = datetime_DST_set(value.type.Boolean, wp_data);
             }
             break;
 #if defined(BACDL_MSTP)
@@ -1808,7 +1815,6 @@ bool Device_Write_Property_Local(BACNET_WRITE_PROPERTY_DATA *wp_data)
         case PROP_APPLICATION_SOFTWARE_VERSION:
         case PROP_LOCAL_TIME:
         case PROP_LOCAL_DATE:
-        case PROP_DAYLIGHT_SAVINGS_STATUS:
         case PROP_PROTOCOL_VERSION:
         case PROP_PROTOCOL_REVISION:
         case PROP_PROTOCOL_SERVICES_SUPPORTED:

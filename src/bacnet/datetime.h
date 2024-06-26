@@ -18,6 +18,25 @@
 /* BACnet Stack defines - first */
 #include "bacnet/bacdef.h"
 
+// OS clock usage
+// 
+// Coupled 
+//      Use the OS clock. Setting date and time via BACnet TimeSynch (etc) services modifies date and time of the underlying OS
+// 
+// Decoupled
+//      Use a 'tracking' clock that references the OS clock but adds an offset, initially 0,
+//      allowing free and easy manipulation of 'BACnet Time' without affecting the underlying OS clock.
+// 
+//      It also allows write access to the Daylight Savings property, which would otherwise be controlled by the OS
+// 
+//          This makes testing of Calendars, Schedules and Trend Logs easier on 'sophisticated' platforms, 
+//          e.g. linux, Windows, VMs etc.  It works just as well as 'Coupled' time when it comes to BACnet, but
+//          other apps on running on the same platform can continue to use the OS time, from e.g. OS SNTP, GPS clocks etc.
+//          You may want to persist this offset through system restarts.
+
+#define USE_DECOUPLED_BACNET_TIME   1
+
+
 /* define our epic beginnings */
 #define BACNET_DATE_YEAR_EPOCH 1900
 /* 1/1/1900 is a Monday */
@@ -242,6 +261,7 @@ bool datetime_local_to_utc(BACNET_DATE_TIME *utc_time,
     int16_t utc_offset_minutes,
     int8_t dst_adjust_minutes);
 BACNET_STACK_EXPORT
+
 bool datetime_utc_to_local(BACNET_DATE_TIME *local_time,
     BACNET_DATE_TIME *utc_time,
     int16_t utc_offset_minutes,
@@ -306,6 +326,19 @@ bool datetime_local(BACNET_DATE *bdate,
     bool *dst_active);
 BACNET_STACK_EXPORT
 void datetime_init(void);
+
+BACNET_STACK_EXPORT
+bool datetime_utc_set(BACNET_DATE_TIME* bdt);
+BACNET_STACK_EXPORT
+bool datetime_local_set(BACNET_DATE_TIME* bdt);
+BACNET_STACK_EXPORT
+bool datetime_UTC_Offset_set(int offset, BACNET_ERROR_CODE* wp_errCode);
+BACNET_STACK_EXPORT
+int datetime_UTC_Offset_get(void);
+BACNET_STACK_EXPORT
+bool datetime_DST_set(bool dstFlag, BACNET_ERROR_CODE* wp_errCode);
+BACNET_STACK_EXPORT
+bool datetime_DST_get(void);
 
 #ifdef __cplusplus
 }
