@@ -1839,14 +1839,14 @@ bool Device_Write_Property_Local(BACNET_WRITE_PROPERTY_DATA *wp_data)
             status = write_property_type_valid(
                 wp_data, &value, BACNET_APPLICATION_TAG_SIGNED_INT);
             if (status) {
-                status = datetime_UTC_Offset_set(value.type.Signed_Int, wp_data );
+                status = datetime_UTC_Offset_set(value.type.Signed_Int, &wp_data->error_code );
             }
             break;
         case PROP_DAYLIGHT_SAVINGS_STATUS:
             status = write_property_type_valid(
                 wp_data, &value, BACNET_APPLICATION_TAG_BOOLEAN);
             if (status) {
-                status = datetime_DST_set(value.type.Boolean, wp_data);
+                status = datetime_DST_set(value.type.Boolean, &wp_data->error_code);
             }
             break;
 #if defined(BACDL_MSTP)
