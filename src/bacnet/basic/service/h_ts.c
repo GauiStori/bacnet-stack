@@ -127,7 +127,7 @@ void handler_timesync_utc(
         if (datetime_is_valid(&bdtUTC.date, &bdtUTC.time)) {
 #if PRINT_ENABLED
             fprintf(stderr, "Received TimeSyncronization (UTC) Request\r\n");
-            show_bacnet_date_time(&bdate, &btime);
+            show_bacnet_date_time(&bdtUTC.date, &bdtUTC.time);
 #endif
 
             datetime_utc_set(&bdtUTC);
