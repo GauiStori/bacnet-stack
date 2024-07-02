@@ -131,7 +131,7 @@ bool datetime_local_set(BACNET_DATE_TIME* bdt)
 #if ( USE_DECOUPLED_BACNET_TIME == 1 )
     // timegm expects UTC time, we use it to get our time_t and then adjust
     setTime = timegm(&tSet);
-    setTime -= UTC_Offset * 60 + Daylight_Savings_Status * 60 * 60 ;
+    setTime += UTC_Offset * 60 - Daylight_Savings_Status * 60 * 60 ;
     if (setTime > 0)
     {
         time_t delta = setTime - time(NULL);
@@ -276,7 +276,7 @@ void datetime_init(void)
         Daylight_Savings_Status = (tblock->tm_isdst > 0);
 
         /* note: timezone is declared in <time.h> stdlib. */
-        UTC_Offset = timezone / 60;
+        UTC_Offset = -timezone / 60;
     }
 #endif
 }
