@@ -1239,12 +1239,12 @@ static void Update_Current_Time(
 
 #if !defined(_MSC_VER)
         /* note: timezone is declared in <time.h> stdlib. */
-        UTC_Offset = -timezone / 60;
+        UTC_Offset = timezone / 60;
 #else
         //  todo 0 - restore
         //TIME_ZONE_INFORMATION tziOld;
         //GetTimeZoneInformation(&tziOld);
-        //UTC_Offset = -tziOld.Bias;
+        //UTC_Offset = tziOld.Bias;
 #endif
 
     }

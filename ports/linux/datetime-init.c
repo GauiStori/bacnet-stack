@@ -276,7 +276,8 @@ void datetime_init(void)
         Daylight_Savings_Status = (tblock->tm_isdst > 0);
 
         /* note: timezone is declared in <time.h> stdlib. */
-        UTC_Offset = -timezone / 60;
+        // And timezone is positive going west ! (like BACnet, unlike traditional Timezones).
+        UTC_Offset = timezone / 60;
     }
 #endif
 }
