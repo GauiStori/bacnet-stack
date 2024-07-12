@@ -53,7 +53,6 @@
 static uint16_t Timeout_Milliseconds = 3000;
 /* Number of APDU Retries */
 static uint8_t Number_Of_Retries = 3;
-int Local_Network_Priority; /* Fixing test 10.1.2 Network priority */
 
 /* a simple table for crossing the services supported */
 static BACNET_SERVICES_SUPPORTED
@@ -88,7 +87,7 @@ static BACNET_SERVICES_SUPPORTED
  * @brief get the local network priority
  * @return local network priority
  */
-uint16_t apdu_network_priority(void)
+uint8_t apdu_network_priority(void)
 {
     return Local_Network_Priority;
 }
@@ -97,7 +96,7 @@ uint16_t apdu_network_priority(void)
  * @brief set the local network priority
  * @param net - local network priority
  */
-void apdu_network_priority_set(uint16_t pri)
+void apdu_network_priority_set(uint8_t pri)
 {
     Local_Network_Priority = pri & 0x03;
 }
