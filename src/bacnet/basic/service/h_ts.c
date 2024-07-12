@@ -52,7 +52,7 @@ BACNET_RECIPIENT_LIST Time_Sync_Recipients[MAX_TIME_SYNC_RECIPIENTS];
 static BACNET_DATE_TIME Next_Sync_Time;
 #endif
 
-extern float time_offset;
+static int32_t Time_Offset; /* Time offset in ms */
 
 #if PRINT_ENABLED
 static void show_bacnet_date_time(BACNET_DATE *bdate, BACNET_TIME *btime)
@@ -70,9 +70,19 @@ static void show_bacnet_date_time(BACNET_DATE *bdate, BACNET_TIME *btime)
 }
 #endif
 
-static float timedifference(struct timeval t0, struct timeval t1)
+static int32_t timedifference(struct timeval t0, struct timeval t1)
 {
-    return (t0.tv_sec - t1.tv_sec) + (t0.tv_usec - t1.tv_usec) / 1000000.0f;
+    return (t0.tv_sec - t1.tv_sec)*1000 + (t0.tv_usec - t1.tv_usec) / 1000;
+}
+
+int32_t handler_timesync_offset()
+{
+    return Time_Offset;
+}
+
+void handler_timesync_offset_set(int32_t offset)
+{
+    Time_Offset = offset;
 }
 
 void handler_timesync(
@@ -85,8 +95,8 @@ void handler_timesync(
     (void)src;
     (void)service_len;
     struct timeval tv_inp, tv_sys;
-    time_t rawtime;
     struct tm *timeinfo;
+    time_t rawtime;
     time( &rawtime);
     timeinfo = localtime(&rawtime);
     len = timesync_decode_service_request(
@@ -94,10 +104,6 @@ void handler_timesync(
     if (len > 0) {
         if (datetime_is_valid(&bdate, &btime)) {
             /* fixme: only set the time if off by some amount */
-#if PRINT_ENABLED
-            fprintf(stderr, "Received TimeSyncronization Request\r\n");
-            show_bacnet_date_time(&bdate, &btime);
-#endif
             timeinfo->tm_year = bdate.year-1900;
             timeinfo->tm_mon  = bdate.month-1;
             timeinfo->tm_mday  = bdate.day;
@@ -107,8 +113,13 @@ void handler_timesync(
             tv_inp.tv_sec = mktime(timeinfo);
             tv_inp.tv_usec = btime.hundredths*10000;
             if (gettimeofday(&tv_sys, NULL) == 0) {
-                time_offset = timedifference(tv_inp, tv_sys);
+                handler_timesync_offset_set(timedifference(tv_inp, tv_sys));
             }
+#if PRINT_ENABLED
+            fprintf(stderr, "Received Local TimeSyncronization Request\r\n");
+            show_bacnet_date_time(&bdate, &btime);
+            printf("Time offset = %d\n",handler_timesync_offset());
+#endif
         }
     }
 
@@ -128,16 +139,10 @@ void handler_timesync_utc(
     timeinfo = localtime(&rawtime);
     (void)src;
     (void)service_len;
-    struct tm lt;
     len = timesync_decode_service_request(
         service_request, service_len, &bdate, &btime);
     if (len > 0) {
         if (datetime_is_valid(&bdate, &btime)) {
-#if PRINT_ENABLED
-            fprintf(stderr, "Received UTC TimeSyncronization Request\r\n");
-            show_bacnet_date_time(&bdate, &btime);
-#endif
-            localtime_r(&rawtime, &lt);
             timeinfo->tm_year = bdate.year-1900;
             timeinfo->tm_mon  = bdate.month-1;
             timeinfo->tm_mday  = bdate.day;
@@ -147,9 +152,13 @@ void handler_timesync_utc(
             tv_inp.tv_sec = mktime(timeinfo);
             tv_inp.tv_usec = btime.hundredths*10000;
             if (gettimeofday(&tv_sys, NULL) == 0) {
-                time_offset = timedifference(tv_inp, tv_sys) + lt.tm_gmtoff;
-                printf("Time offset = %f\n",time_offset);
+                handler_timesync_offset_set(timedifference(tv_inp, tv_sys) - Device_UTC_Offset()*60);
             }
+#if PRINT_ENABLED
+            fprintf(stderr, "Received UTC TimeSyncronization Request\r\n");
+            show_bacnet_date_time(&bdate, &btime);
+            printf("Time offset = %d\n",handler_timesync_offset());
+#endif
         }
     }
 

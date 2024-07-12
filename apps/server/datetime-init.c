@@ -16,19 +16,9 @@
 #include <stdlib.h>
 #include <time.h>
 #include <sys/time.h>
-//#include "bacport.h"
 #include <bacnet/datetime.h>
+#include <bacnet/basic/service/h_ts.h>
 
-
-extern float time_offset;
-
-int timezonediff()
-{
-    time_t t = time(NULL);
-    struct tm lt = {0};
-    localtime_r(&t, &lt);
-    return -lt.tm_gmtoff;
-}
 
 /**
  * @brief Get the date, time, timezone, and UTC offset from system
@@ -48,12 +38,13 @@ bool datetime_local(BACNET_DATE *bdate,
     bool status = false;
     struct tm *tblock = NULL;
     struct timeval tv;
+    int32_t to;
 
     if (gettimeofday(&tv, NULL) == 0) {
-        //printf("datetime_local Time offset = %f\n",time_offset);
-        tv.tv_sec += (int) time_offset;
-        tv.tv_usec += fmodf(time_offset,1.0)*1000000;
-        tblock = (struct tm *)localtime((time_t *) &tv.tv_sec);
+        to = handler_timesync_offset();
+        tv.tv_sec += (int) to/1000;
+        tv.tv_usec += (to%1000)*1000;
+        tblock = (struct tm *) localtime((time_t *) &tv.tv_sec);
     }
     if (tblock) {
         status = true;
@@ -89,8 +80,7 @@ bool datetime_local(BACNET_DATE *bdate,
             /* timezone is set to the difference, in seconds,
                 between Coordinated Universal Time (UTC) and
                 local standard time */
-            *utc_offset_minutes = timezonediff() / 60;
-            //printf("Offset = %d\n",*utc_offset_minutes);
+            *utc_offset_minutes = timezone/60 - tblock->tm_isdst*60;
         }
     }
 
@@ -102,7 +92,7 @@ bool datetime_local(BACNET_DATE *bdate,
  */
 void datetime_init(void)
 {
-    time_offset = 0;
+    handler_timesync_offset_set(0);
     /*printf("Time init\n");*/
     /* nothing to do */
 }
