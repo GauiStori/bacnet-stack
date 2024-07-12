@@ -87,7 +87,6 @@ void handler_read_property(uint8_t *service_request,
     rpdata.error_code = ERROR_CODE_ABORT_SEGMENTATION_NOT_SUPPORTED;
     /* encode the NPDU portion of the packet */
     datalink_get_my_address(&my_address);
-    // ekh2gig - see my email about using a global variable
     npdu_encode_npdu_data(&npdu_data, false, service_data->priority);
     npdu_len = npdu_encode_pdu(
         &Handler_Transmit_Buffer[0], src, &my_address, &npdu_data);
