@@ -24,15 +24,45 @@
 //      Use the OS clock. Setting date and time via BACnet TimeSynch (etc) services modifies date and time of the underlying OS
 // 
 // Decoupled
-//      Use a 'tracking' clock that references the OS clock but adds an offset, initially 0,
+//      Use a 'tracking' clock that references the OS clock but adds a 'ClockOffset', initially 0 [*1],
 //      allowing free and easy manipulation of 'BACnet Time' without affecting the underlying OS clock.
 // 
-//      It also allows write access to the Daylight Savings property, which would otherwise be controlled by the OS
+//      It also allows write access to the Daylight_Savings_Status and UTC_Offset properties, which would otherwise be controlled by the OS
 // 
 //          This makes testing of Calendars, Schedules and Trend Logs easier on 'sophisticated' platforms, 
 //          e.g. linux, Windows, VMs etc.  It works just as well as 'Coupled' time when it comes to BACnet, but
 //          other apps on running on the same platform can continue to use the OS time, from e.g. OS SNTP, GPS clocks etc.
 //          You may want to persist this offset through system restarts.
+// 
+//      Much discussion:
+// 
+//          In general, there are 3 modes of possible Time and Date operation on a BACnet Device
+//          
+//          1   OS controls BACnet time. Modifying BACnet time modifies OS time.
+// 
+//          2   UTC_Offset and Daylight_Savings_Status is completely controlled BACnet 'over the wire' messages. For very simple devices
+// 
+//          3   A hybrid, which accomodates testing, (this 'DECOUPLED_BACNET_TIME') implementation.
+// 
+//              -   On restart, the BACnet application reads the OS time, Offset and DST and applies them to the BACnet properties.
+//                  (And [*1] load persistent ClockOffset if available.)
+//              -   BACnet time that is presented and used is the OS time + ClockOffset
+//              -   Modifying UTC and Local date and time behaves as expected, but only ClockOffset is modified.
+//              -   DST is maintained by the OS, until.. 
+//              -   If BACnet UTC_Offset is written, if allowed, this takes precedence over OS value until either a restart or Local settings are touched [*2]
+//              -   Writing to BACnet Daylight_Savings_Status, if allowed, overwrites the OS setting, and this remains overridden until 
+//                  either restart or Local settings are touched [*2]
+//              -   UTCtimesych updates both UTC (internal) and Local_Time and Local_Date as expected (by modifying ClockOffset, not OS)
+//              -   Write to Local_Time or Local_Date updates the ClockOffset as expected
+//              -   Similarly for BACnet UTC_Offset
+// 
+// Notes:
+// 
+//  1   Ideally, this value should be persisted
+//  2   'Touching Local settings': if TimeSynchronize (local) sent, or write to Local_Time or Local_Date settings occur, or system restarts (warm, cold or power)
+//
+
+
 
 #define USE_DECOUPLED_BACNET_TIME   1
 
@@ -49,7 +79,8 @@ typedef enum BACnet_Weekday {
     BACNET_WEEKDAY_THURSDAY = 4,
     BACNET_WEEKDAY_FRIDAY = 5,
     BACNET_WEEKDAY_SATURDAY = 6,
-    BACNET_WEEKDAY_SUNDAY = 7
+    BACNET_WEEKDAY_SUNDAY = 7,
+    BACNET_WEEKDAY_ANY = 0xff
 } BACNET_WEEKDAY;
 
 /* date */

@@ -1425,19 +1425,15 @@ int Device_Read_Property_Local(BACNET_READ_PROPERTY_DATA *rpdata)
                 encode_application_character_string(&apdu[0], &char_string);
             break;
         case PROP_LOCAL_TIME:
-            if (datetime_local(NULL, &Local_Time, NULL, NULL))
-            {
-                apdu_len = encode_application_time(&apdu[0], &Local_Time);
-            }
+            datetime_local(NULL, &Local_Time, NULL, NULL);
+            apdu_len = encode_application_time(&apdu[0], &Local_Time);
             break;
         case PROP_UTC_OFFSET:
             apdu_len = encode_application_signed(&apdu[0], datetime_UTC_Offset_get() );
             break;
         case PROP_LOCAL_DATE:
-            if (datetime_local(&Local_Date, NULL, NULL, NULL))
-            {
-                apdu_len = encode_application_date(&apdu[0], &Local_Date);
-            }
+            datetime_local(&Local_Date, NULL, NULL, NULL);
+            apdu_len = encode_application_date(&apdu[0], &Local_Date);
             break;
         case PROP_DAYLIGHT_SAVINGS_STATUS:
             apdu_len = encode_application_boolean(&apdu[0], datetime_DST_get());
@@ -1664,22 +1660,24 @@ bool Device_Write_Property_Local(BACNET_WRITE_PROPERTY_DATA *wp_data)
     uint32_t minutes = 0;
 #endif
 
+    // set up the most common failure mode
+    wp_data->error_class = ERROR_CLASS_PROPERTY;
+
     /* decode the some of the request */
     len = bacapp_decode_application_data(
         wp_data->application_data, wp_data->application_data_len, &value);
     if (len < 0) {
         /* error while decoding - a value larger than we can handle */
-        wp_data->error_class = ERROR_CLASS_PROPERTY;
         wp_data->error_code = ERROR_CODE_VALUE_OUT_OF_RANGE;
         return false;
     }
     if ((wp_data->object_property != PROP_OBJECT_LIST) &&
         (wp_data->array_index != BACNET_ARRAY_ALL)) {
         /*  only array properties can have array options */
-        wp_data->error_class = ERROR_CLASS_PROPERTY;
         wp_data->error_code = ERROR_CODE_PROPERTY_IS_NOT_AN_ARRAY;
         return false;
     }
+
     /* FIXME: len < application_data_len: more data? */
     switch (wp_data->object_property) {
         case PROP_OBJECT_IDENTIFIER:
@@ -1831,7 +1829,6 @@ bool Device_Write_Property_Local(BACNET_WRITE_PROPERTY_DATA *wp_data)
         case PROP_TIME_SYNCHRONIZATION_INTERVAL:
         case PROP_ALIGN_INTERVALS:
         case PROP_INTERVAL_OFFSET:
-            wp_data->error_class = ERROR_CLASS_PROPERTY;
             wp_data->error_code = ERROR_CODE_UNKNOWN_PROPERTY;
             break;
 #endif
@@ -1881,10 +1878,10 @@ bool Device_Write_Property_Local(BACNET_WRITE_PROPERTY_DATA *wp_data)
 #else
         case PROP_MAX_INFO_FRAMES:
         case PROP_MAX_MASTER:
-            wp_data->error_class = ERROR_CLASS_PROPERTY;
             wp_data->error_code = ERROR_CODE_UNKNOWN_PROPERTY;
             break;
 #endif
+
         case PROP_OBJECT_TYPE:
         case PROP_VENDOR_NAME:
         case PROP_FIRMWARE_REVISION:
@@ -1904,17 +1901,16 @@ bool Device_Write_Property_Local(BACNET_WRITE_PROPERTY_DATA *wp_data)
 #if defined(BACNET_TIME_MASTER)
         case PROP_TIME_SYNCHRONIZATION_RECIPIENTS:
 #endif
-            wp_data->error_class = ERROR_CLASS_PROPERTY;
             wp_data->error_code = ERROR_CODE_WRITE_ACCESS_DENIED;
             break;
         default:
-            wp_data->error_class = ERROR_CLASS_PROPERTY;
             wp_data->error_code = ERROR_CODE_UNKNOWN_PROPERTY;
             break;
     }
 
     return status;
 }
+
 
 /**
  * @brief Handles the writing of the object name property
