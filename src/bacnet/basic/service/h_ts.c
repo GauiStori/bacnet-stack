@@ -36,8 +36,6 @@
 #include "bacnet/basic/object/device.h"
 #include "bacnet/basic/services.h"
 #include "bacnet/basic/tsm/tsm.h"
-#include <sys/time.h>
-#include <time.h>
 
 /** @file h_ts.c  Handles TimeSync requests. */
 
@@ -51,8 +49,6 @@ BACNET_RECIPIENT_LIST Time_Sync_Recipients[MAX_TIME_SYNC_RECIPIENTS];
    automatically send a TimeSynchronization request */
 static BACNET_DATE_TIME Next_Sync_Time;
 #endif
-
-static int32_t Time_Offset; /* Time offset in ms */
 
 #if PRINT_ENABLED
 static void show_bacnet_date_time(BACNET_DATE *bdate, BACNET_TIME *btime)
@@ -70,12 +66,12 @@ static void show_bacnet_date_time(BACNET_DATE *bdate, BACNET_TIME *btime)
 }
 #endif
 
-static int32_t timedifference(struct timeval t0, struct timeval t1)
-{
-    return (t0.tv_sec - t1.tv_sec)*1000 + (t0.tv_usec - t1.tv_usec) / 1000;
-}
+/* Callback for timesync set */
+static handler_timesync_set_callback_t handler_timesync_set_callback;
 
-int32_t handler_timesync_offset()
+static int32_t Time_Offset; /* Time offset in ms */
+
+int32_t handler_timesync_offset(void)
 {
     return Time_Offset;
 }
@@ -94,31 +90,17 @@ void handler_timesync(
 
     (void)src;
     (void)service_len;
-    struct timeval tv_inp, tv_sys;
-    struct tm *timeinfo;
-    time_t rawtime;
-    time( &rawtime);
-    timeinfo = localtime(&rawtime);
     len = timesync_decode_service_request(
         service_request, service_len, &bdate, &btime);
     if (len > 0) {
         if (datetime_is_valid(&bdate, &btime)) {
             /* fixme: only set the time if off by some amount */
-            timeinfo->tm_year = bdate.year-1900;
-            timeinfo->tm_mon  = bdate.month-1;
-            timeinfo->tm_mday  = bdate.day;
-            timeinfo->tm_hour = btime.hour;
-            timeinfo->tm_min  = btime.min;
-            timeinfo->tm_sec  = btime.sec;
-            tv_inp.tv_sec = mktime(timeinfo);
-            tv_inp.tv_usec = btime.hundredths*10000;
-            if (gettimeofday(&tv_sys, NULL) == 0) {
-                handler_timesync_offset_set(timedifference(tv_inp, tv_sys));
+            if (handler_timesync_set_callback) {
+                handler_timesync_set_callback(&bdate, &btime, false);
             }
 #if PRINT_ENABLED
             fprintf(stderr, "Received Local TimeSyncronization Request\r\n");
             show_bacnet_date_time(&bdate, &btime);
-            printf("Time offset = %d\n",handler_timesync_offset());
 #endif
         }
     }
@@ -132,32 +114,19 @@ void handler_timesync_utc(
     int len = 0;
     BACNET_DATE bdate;
     BACNET_TIME btime;
-    struct timeval tv_inp, tv_sys;
-    time_t rawtime;
-    struct tm *timeinfo;
-    time( &rawtime);
-    timeinfo = localtime(&rawtime);
+
     (void)src;
     (void)service_len;
     len = timesync_decode_service_request(
         service_request, service_len, &bdate, &btime);
     if (len > 0) {
         if (datetime_is_valid(&bdate, &btime)) {
-            timeinfo->tm_year = bdate.year-1900;
-            timeinfo->tm_mon  = bdate.month-1;
-            timeinfo->tm_mday  = bdate.day;
-            timeinfo->tm_hour = btime.hour;
-            timeinfo->tm_min  = btime.min;
-            timeinfo->tm_sec  = btime.sec;
-            tv_inp.tv_sec = mktime(timeinfo);
-            tv_inp.tv_usec = btime.hundredths*10000;
-            if (gettimeofday(&tv_sys, NULL) == 0) {
-                handler_timesync_offset_set(timedifference(tv_inp, tv_sys) - Device_UTC_Offset()*60);
+            if (handler_timesync_set_callback) {
+                handler_timesync_set_callback(&bdate, &btime, true);
             }
 #if PRINT_ENABLED
             fprintf(stderr, "Received UTC TimeSyncronization Request\r\n");
             show_bacnet_date_time(&bdate, &btime);
-            printf("Time offset = %d\n",handler_timesync_offset());
 #endif
         }
     }
@@ -323,3 +292,14 @@ void handler_timesync_init(void)
     }
 }
 #endif
+
+/**
+ * Configures and enables a timesync callback function
+ *
+ * @param cb - pointer to #handler_timesync_set_callback_t
+ */
+void handler_timesync_set_callback_set(
+    handler_timesync_set_callback_t cb)
+{
+    handler_timesync_set_callback = cb;
+}
