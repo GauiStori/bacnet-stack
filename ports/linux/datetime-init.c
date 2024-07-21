@@ -22,11 +22,11 @@ static int32_t Time_Offset; /* Time offset in ms */
 
 /**
  * @brief Calculate the time offset from the system clock.
- * @return Time offset in ms
+ * @return Time offset in 10 ms
   */
 static int32_t time_difference(struct timeval t0, struct timeval t1)
 {
-    return (t0.tv_sec - t1.tv_sec) * 1000 + (t0.tv_usec - t1.tv_usec) / 1000;
+    return (t0.tv_sec - t1.tv_sec) * 100 + (t0.tv_usec - t1.tv_usec) / 10000;
 }
 
 /**
@@ -55,7 +55,7 @@ void datetime_timesync(BACNET_DATE *bdate, BACNET_TIME *btime, bool utc)
     if (gettimeofday(&tv_sys, NULL) == 0) {
         if (utc) {
             Time_Offset = time_difference(tv_inp, tv_sys) -
-                (timezone - timeinfo->tm_isdst * 3600) * 1000;
+                (timezone - timeinfo->tm_isdst * 3600) * 100;
 
         } else {
             Time_Offset = time_difference(tv_inp, tv_sys);
@@ -89,8 +89,8 @@ bool datetime_local(
 
     if (gettimeofday(&tv, NULL) == 0) {
         to = Time_Offset;
-        tv.tv_sec += (int)to / 1000;
-        tv.tv_usec += (to % 1000) * 1000;
+        tv.tv_sec += (int)to / 100;
+        tv.tv_usec += (to % 100) * 10000;
         tblock = (struct tm *)localtime((const time_t *)&tv.tv_sec);
     }
     if (tblock) {
