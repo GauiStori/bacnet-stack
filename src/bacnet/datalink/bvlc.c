@@ -848,7 +848,6 @@ int bvlc_decode_write_broadcast_distribution_table(
 
     /* count the number of available entries */
     bdt_entry_count = bvlc_broadcast_distribution_table_count(bdt_list);
-      = bdt_entry_count * BACNET_IP_BDT_ENTRY_SIZE;
     /* will the entries fit */
     if (pdu && (pdu_len <= list_len*BACNET_IP_BDT_ENTRY_SIZE)) {
         bdt_entry = bdt_list;
