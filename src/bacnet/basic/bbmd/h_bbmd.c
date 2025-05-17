@@ -875,7 +875,7 @@ int bvlc_bbmd_enabled_handler(
         case BVLC_WRITE_BROADCAST_DISTRIBUTION_TABLE:
             debug_print_bip("Received Write-BDT", addr);
             function_len = bvlc_decode_write_broadcast_distribution_table(
-                pdu, pdu_len, &BBMD_Table[0]);
+                pdu, pdu_len, &BBMD_Table[0],MAX_BBMD_ENTRIES);
             if (function_len > 0) {
                 /* BDT changed! Save backup to file */
                 bvlc_bdt_backup_local();

@@ -836,7 +836,8 @@ int bvlc_encode_write_broadcast_distribution_table(
 int bvlc_decode_write_broadcast_distribution_table(
     const uint8_t *pdu,
     uint16_t pdu_len,
-    BACNET_IP_BROADCAST_DISTRIBUTION_TABLE_ENTRY *bdt_list)
+    BACNET_IP_BROADCAST_DISTRIBUTION_TABLE_ENTRY *bdt_list,
+    uint16_t list_len)
 {
     int bytes_consumed = 0;
     int len = 0;
@@ -844,13 +845,12 @@ int bvlc_decode_write_broadcast_distribution_table(
     uint16_t pdu_bytes = 0;
     uint16_t bdt_entry_count = 0;
     BACNET_IP_BROADCAST_DISTRIBUTION_TABLE_ENTRY *bdt_entry = NULL;
-    uint16_t list_len = 0;
 
     /* count the number of available entries */
     bdt_entry_count = bvlc_broadcast_distribution_table_count(bdt_list);
-    list_len = bdt_entry_count * BACNET_IP_BDT_ENTRY_SIZE;
+      = bdt_entry_count * BACNET_IP_BDT_ENTRY_SIZE;
     /* will the entries fit */
-    if (pdu && (pdu_len <= list_len)) {
+    if (pdu && (pdu_len <= list_len*BACNET_IP_BDT_ENTRY_SIZE)) {
         bdt_entry = bdt_list;
         while (bdt_entry) {
             pdu_bytes = pdu_len - offset;
@@ -862,7 +862,8 @@ int bvlc_decode_write_broadcast_distribution_table(
                 }
                 offset += len;
             } else {
-                bdt_entry->valid = false;
+                /* bdt_entry->valid = false; */
+                break; /* Don't set to false but stop iterating */
             }
             bdt_entry = bdt_entry->next;
         }

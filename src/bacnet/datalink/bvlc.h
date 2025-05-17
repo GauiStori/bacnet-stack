@@ -346,7 +346,8 @@ BACNET_STACK_EXPORT
 int bvlc_decode_write_broadcast_distribution_table(
     const uint8_t *pdu,
     uint16_t pdu_len,
-    BACNET_IP_BROADCAST_DISTRIBUTION_TABLE_ENTRY *bdt_list);
+    BACNET_IP_BROADCAST_DISTRIBUTION_TABLE_ENTRY *bdt_list,
+    uint16_t list_len);
 
 BACNET_STACK_EXPORT
 int bvlc_encode_read_broadcast_distribution_table(
