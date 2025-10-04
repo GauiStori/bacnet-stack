@@ -18,6 +18,7 @@
 #include "bacnet/basic/services.h"
 #include "bacnet/basic/sys/debug.h"
 #include "bacnet/datalink/datalink.h"
+#include "bacnet/basic/object/netport.h"
 
 #if PRINT_ENABLED
 #include <stdio.h>
@@ -159,17 +160,29 @@ static void network_control_handler(
         case NETWORK_MESSAGE_NETWORK_NUMBER_IS:
             if (src->net == 0) {
                 /*  It shall be transmitted with a local broadcast address,
-                    and shall never be routed. */
+                    and shall never be routed. [BTS] */
                 if (npdu_len >= 2) {
                     (void)decode_unsigned16(npdu, &dnet);
                     Local_Network_Number = dnet;
+                    // FIXME todo 1 - this is a hack, it will only apply for single-datalink systems
+                    Network_Port_Network_Number_Set(1, Local_Network_Number);
                 }
                 if (npdu_len >= 3) {
                     status = npdu[2];
                     /*  Our net number is always learned, unless we
                         are a router.  Ignore the learned/configured
                         status */
-                    (void)status;
+                    // this statement is not 100% correct, there are 2 types of learning.
+
+                    // todo 1 - this is a hack, it will only apply for single-datalink systems
+                    if (status)
+                    {
+                        Network_Port_Quality_Set(1, PORT_QUALITY_LEARNED_CONFIGURED );
+                    }
+                    else
+                    {
+                        Network_Port_Quality_Set(1, PORT_QUALITY_LEARNED);
+                    }
                 }
             } else {
                 /*  Devices shall ignore Network-Number-Is messages that
