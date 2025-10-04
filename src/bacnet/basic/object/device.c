@@ -1777,8 +1777,16 @@ bool Device_Write_Property_Local(BACNET_WRITE_PROPERTY_DATA *wp_data)
         wp_data->object_type, wp_data->object_property);
     if (len < 0) {
         /* error while decoding - a value larger than we can handle */
+        /* Return write error even if there is an error in request if
+         * write access is prohibited. Fixes BTS error. */
+        switch (wp_data->object_property) {
+            case PROP_TIME_OF_DEVICE_RESTART:
+                wp_data->error_code = ERROR_CODE_WRITE_ACCESS_DENIED;
+                break;
+            default:
+                wp_data->error_code = ERROR_CODE_VALUE_OUT_OF_RANGE;
+        }
         wp_data->error_class = ERROR_CLASS_PROPERTY;
-        wp_data->error_code = ERROR_CODE_VALUE_OUT_OF_RANGE;
         return false;
     }
     /* FIXME: len < application_data_len: more data? */
