@@ -1011,6 +1011,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../src/bacnet/youare.h" />
+		<Unit filename="datetime-init.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
