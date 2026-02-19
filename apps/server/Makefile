@@ -48,7 +48,8 @@ SRC = main.c \
 	$(BACNET_OBJECT_DIR)/structured_view.c \
 	$(BACNET_OBJECT_DIR)/time_value.c \
 	$(BACNET_OBJECT_DIR)/timer.c \
-	$(BACNET_OBJECT_DIR)/trendlog.c
+	$(BACNET_OBJECT_DIR)/trendlog.c \
+	datetime-init.c
 
 # TARGET_EXT is defined in apps/Makefile as .exe or nothing
 TARGET_BIN = ${TARGET}$(TARGET_EXT)
