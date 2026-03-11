@@ -22,7 +22,7 @@
 #include "bacnet/basic/services.h"
 
 /* APDU Timeout in Milliseconds */
-static uint16_t Timeout_Milliseconds = 3000;
+static uint16_t Timeout_Milliseconds = 10000; /* Required constant value 12.11.28 */
 /* Number of APDU Retries */
 static uint8_t Number_Of_Retries = 3;
 static uint8_t Local_Network_Priority; /* Fixing test 10.1.2 Network priority */
