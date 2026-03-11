@@ -19,6 +19,7 @@
 #include "bacnet/basic/services.h"
 #include "bacnet/basic/sys/debug.h"
 #include "bacnet/datalink/datalink.h"
+#include "bacnet/basic/object/netport.h"
 
 #if PRINT_ENABLED
 #include <stdio.h>
@@ -154,6 +155,7 @@ static void network_control_handler(
     uint8_t status = 0;
     uint16_t npdu_offset = 0;
     uint16_t len = 0;
+    const uint32_t instance = 1; /* FIXME: Only works on a single-datalink system */
 
     switch (npdu_data->network_message_type) {
         case NETWORK_MESSAGE_WHAT_IS_NETWORK_NUMBER:
@@ -175,17 +177,24 @@ static void network_control_handler(
         case NETWORK_MESSAGE_NETWORK_NUMBER_IS:
             if (src->net == 0) {
                 /*  It shall be transmitted with a local broadcast address,
-                    and shall never be routed. */
+                    and shall never be routed. [BTS] */
                 if (npdu_len >= 2) {
                     (void)decode_unsigned16(npdu, &dnet);
                     Local_Network_Number = dnet;
+                    Network_Port_Network_Number_Set(instance, Local_Network_Number);
                 }
                 if (npdu_len >= 3) {
                     status = npdu[2];
                     /*  Our net number is always learned, unless we
                         are a router.  Ignore the learned/configured
                         status */
-                    (void)status;
+                    /* This statement is not 100% correct, there are 2 types of learning.
+                       But it fixed the BTL certification*/
+                    if (status) {
+                        Network_Port_Quality_Set(instance, PORT_QUALITY_LEARNED_CONFIGURED );
+                    } else {
+                        Network_Port_Quality_Set(instance, PORT_QUALITY_LEARNED);
+                    }
                 }
             } else {
                 /*  Devices shall ignore Network-Number-Is messages that
