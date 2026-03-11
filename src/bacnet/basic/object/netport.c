@@ -4700,6 +4700,18 @@ bool Network_Port_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
                 status = true;
             }
             break;
+        case PROP_NETWORK_NUMBER:
+            /*if (write_property_type_valid(
+                    wp_data, &value, BACNET_APPLICATION_TAG_UNSIGNED_INT)) {
+                status = Network_Port_Network_Number_Set(wp_data->object_instance,
+                                                         value.type.Unsigned_Int);
+                if (status)
+                    Network_Port_Quality_Set(wp_data->object_instance,
+                                             PORT_QUALITY_LEARNED);
+            }*/
+            wp_data->error_class = ERROR_CLASS_PROPERTY;
+            wp_data->error_code = ERROR_CODE_WRITE_ACCESS_DENIED;
+            break;
         default:
             if (Property_List_Member(
                     wp_data->object_instance, wp_data->object_property)) {
