@@ -57,6 +57,12 @@ BACNET_STACK_EXPORT
 int dlenv_bbmd_result(void);
 
 BACNET_STACK_EXPORT
+void dlenv_bbmd_ttltobe_set(uint16_t ttl_secs);
+
+BACNET_STACK_EXPORT
+void dlenv_bbmd_addresstobe_set(const BACNET_HOST_N_PORT *bbmd_address);
+
+BACNET_STACK_EXPORT
 bool dlenv_is_bsc_hub_connected(void);
 
 #ifdef __cplusplus
