@@ -27,6 +27,7 @@
 #include "bacnet/basic/binding/address.h"
 #include "bacnet/basic/object/device.h"
 /* me */
+#include "bacnet/datalink/dlenv.h"
 #include "bacnet/basic/object/netport.h"
 #include <bacnet/basic/object/netport_internal.h>
 
@@ -2625,6 +2626,7 @@ bool Network_Port_Remote_BBMD_BIP_Lifetime_Set(
                 Object_List[index].Changes_Pending = true;
             }
             Object_List[index].Network.IPv4.BBMD_Lifetime = value;
+            dlenv_bbmd_ttltobe_set(value);
             status = true;
         }
     }
@@ -4567,8 +4569,14 @@ bool Network_Port_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
 #endif
     if (len < 0) {
         /* error while decoding - a value larger than we can handle */
+       switch (wp_data->object_property) {
+            case PROP_FD_BBMD_ADDRESS:
+                wp_data->error_code = ERROR_CODE_WRITE_ACCESS_DENIED;
+                break;
+            default:
+                wp_data->error_code = ERROR_CODE_VALUE_OUT_OF_RANGE;
+        }
         wp_data->error_class = ERROR_CLASS_PROPERTY;
-        wp_data->error_code = ERROR_CODE_VALUE_OUT_OF_RANGE;
         return false;
     }
     /* FIXME: len < application_data_len: more data? */
@@ -4649,6 +4657,7 @@ bool Network_Port_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
         case PROP_FD_BBMD_ADDRESS:
             if (write_property_type_valid(
                     wp_data, &value, BACNET_APPLICATION_TAG_HOST_N_PORT)) {
+                dlenv_bbmd_addresstobe_set(&value.type.Host_Address);
                 status = Network_Port_FD_BBMD_Address_Write(
                     wp_data->object_instance, &value.type.Host_Address,
                     &wp_data->error_class, &wp_data->error_code);

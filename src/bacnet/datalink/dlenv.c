@@ -36,16 +36,23 @@
 #include "bacfile-posix.h"
 #endif
 
+#define LINK_SPEED 1e8 /* 100MBit ethernet */
+
 /* enable debugging */
 static bool Datalink_Debug;
 static uint16_t Datalink_Debug_Timer_Seconds;
 /* timer used to renew Foreign Device Registration */
 static uint16_t BBMD_Timer_Seconds;
 static uint16_t BBMD_TTL_Seconds = 60000;
+static uint16_t BBMD_TTL_Seconds_to_be = 60000;
+static bool update_BBMD_TTL = false;
 /* BBMD variables */
 static BACNET_IP_ADDRESS BBMD_Address;
 static bool BBMD_Address_Valid;
 static uint16_t BBMD_Result = 0;
+static BACNET_HOST_N_PORT BBMD_ADDRESS_tobe;
+static bool update_BBMD_Address = false;
+
 #if defined(BACDL_BIP) && BBMD_ENABLED
 static BACNET_IP_BROADCAST_DISTRIBUTION_TABLE_ENTRY BBMD_Table_Entry;
 #endif
@@ -84,6 +91,27 @@ void dlenv_bbmd_address_set(const BACNET_IP_ADDRESS *address)
     BBMD_Address_Valid = true;
 }
 
+/**
+ * @brief Sets the IPv4 address for BBMD registration
+ * to be activated later.
+ *
+ *  If not set here or provided by Environment variables,
+ *  no BBMD registration will occur.
+ *
+ * @param address - IPv4 address (uint32_t) of BBMD to register with,
+ *  in network byte order.
+ */
+void dlenv_bbmd_addresstobe_set(const BACNET_HOST_N_PORT *bbmd_address)
+{
+    bool status = false;
+    if (bbmd_address) {
+        status = host_n_port_copy(&BBMD_ADDRESS_tobe, bbmd_address);
+        if (status) {
+            update_BBMD_Address = true;
+        }
+    }
+}
+
 /** Set the Lease Time (Time-to-Live) for BBMD registration.
  * Default if not set is 60000 (1000 minutes).
  * @param ttl_secs - The Lease Time, in seconds.
@@ -91,6 +119,17 @@ void dlenv_bbmd_address_set(const BACNET_IP_ADDRESS *address)
 void dlenv_bbmd_ttl_set(uint16_t ttl_secs)
 {
     BBMD_TTL_Seconds = ttl_secs;
+}
+
+/** Set the Lease Time value (Time-to-Live) for BBMD registration
+ * to be activated later.
+ * Default if not set is 60000 (1000 minutes).
+ * @param ttl_secs - The Lease Time, in seconds.
+ */
+void dlenv_bbmd_ttltobe_set(uint16_t ttl_secs)
+{
+    BBMD_TTL_Seconds_to_be = ttl_secs;
+    update_BBMD_TTL = true;
 }
 
 /** Get the result of the last attempt to register with the indicated BBMD.
@@ -337,8 +376,29 @@ static int bbmd6_register_as_foreign_device(void)
 static void bip_network_port_activate_changes(uint32_t instance)
 {
 #if defined(BACDL_BIP)
+    char buf[15];
     bvlc_bbmd_accept_fd_registrations_set(
         Network_Port_BBMD_Accept_FD_Registrations(instance));
+    if(update_BBMD_TTL)
+    {
+        snprintf(15,buf,"%u",BBMD_TTL_Seconds_to_be);
+        setenv("BACNET_BBMD_TIMETOLIVE",buf,1);
+        BBMD_TTL_Seconds = BBMD_TTL_Seconds_to_be;
+        update_BBMD_TTL     = false;
+    }
+    if (update_BBMD_Address)
+    {
+        snprintf(15,buf,"%u.%u.%u.%u",BBMD_ADDRESS_tobe.host.ip_address.value[0],
+                BBMD_ADDRESS_tobe.host.ip_address.value[1],
+                BBMD_ADDRESS_tobe.host.ip_address.value[2],
+                BBMD_ADDRESS_tobe.host.ip_address.value[3]);
+        setenv("BACNET_BBMD_ADDRESS",buf,1);
+        snprintf(15,buf,"%u",BBMD_ADDRESS_tobe.port);
+        setenv("BACNET_BBMD_PORT",buf,1);
+        bbmd_register_as_foreign_device();
+        update_BBMD_Address = false;
+    }
+    Network_Port_Changes_Pending_Set(instance, false);
 #else
     /* if we are not using BIP, then we don't have any changes to discard */
     (void)instance;
@@ -366,6 +426,8 @@ static void bip_network_port_discard_changes(uint32_t instance)
  */
 static void dlenv_network_port_bip_init(uint32_t instance)
 {
+    long long_value;
+    BACNET_HOST_N_PORT host_port;
 #if defined(BACDL_BIP)
     BACNET_IP_ADDRESS addr = { 0 };
     uint8_t prefix = 0;
@@ -428,7 +490,7 @@ static void dlenv_network_port_bip_init(uint32_t instance)
         instance, addr.address[0], addr.address[1], addr.address[2],
         addr.address[3]);
     Network_Port_IP_Subnet_Prefix_Set(instance, prefix);
-    Network_Port_Link_Speed_Set(instance, 0.0);
+    Network_Port_Link_Speed_Set(instance, LINK_SPEED);
 #if BBMD_ENABLED
     bdt_table = bvlc_bdt_list();
     fdt_table = bvlc_fdt_list();
@@ -450,6 +512,37 @@ static void dlenv_network_port_bip_init(uint32_t instance)
     Network_Port_Quality_Set(instance, PORT_QUALITY_UNKNOWN);
     Network_Port_APDU_Length_Set(instance, MAX_APDU);
     Network_Port_Network_Number_Set(instance, 0);
+#if BBMD_CLIENT_ENABLED
+    pEnv = getenv("BACNET_BBMD_ADDRESS");
+    if (pEnv) {
+
+        BBMD_Address_Valid = bip_get_addr_by_name(pEnv, &BBMD_Address);
+        if (BBMD_Address_Valid)
+        {
+            Network_Port_BIP_Mode_Set( instance, BACNET_IP_MODE_FOREIGN);
+        }
+        BBMD_Address.port = 0xBAC0;
+        pEnv = getenv("BACNET_BBMD_PORT"); /* FIXME Repeated code */
+        if (pEnv) {
+            long_value = strtol(pEnv, NULL, 0);
+            if (long_value <= 0xFFFF) {
+                BBMD_Address.port = (uint16_t)long_value;
+            }
+        }
+        pEnv = getenv("BACNET_BBMD_TIMETOLIVE"); // FIXME Repeated code
+        if (pEnv) {
+            long_value = strtol(pEnv, NULL, 0);
+            if (long_value <= 0xFFFF) {
+                Network_Port_Remote_BBMD_BIP_Lifetime_Set(instance, (uint16_t)long_value);
+            }
+        }
+        host_port.host_ip_address=1;
+        memcpy(host_port.host.ip_address.value,BBMD_Address.address,4);
+        host_port.host.ip_address.length=4;
+        host_port.port = BBMD_Address.port;
+        Network_Port_Remote_BBMD_Address_Set(instance, &host_port);
+    }
+#endif /* BBMD_CLIENT_ENABLED */
     /* last thing - clear pending changes - we don't want to set these
        since they are already set */
     Network_Port_Changes_Pending_Set(instance, false);
