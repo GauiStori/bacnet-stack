@@ -361,38 +361,25 @@ static int bbmd6_register_as_foreign_device(void)
 static void bip_network_port_activate_changes(uint32_t instance)
 {
 #if defined(BACDL_BIP)
-    char buf[200];
-    FILE *fp;
+    char buf[15];
     /*bvlc_bbmd_accept_fd_registrations_set(
         Network_Port_BBMD_Accept_FD_Registrations(instance));*/
     if(update_BBMD_TTL)
     {
-        sprintf(buf,"%u",BBMD_TTL_Seconds_to_be);
+        snprintf(15,buf,"%u",BBMD_TTL_Seconds_to_be);
         setenv("BACNET_BBMD_TIMETOLIVE",buf,1);
         BBMD_TTL_Seconds = BBMD_TTL_Seconds_to_be;
     }
     if (update_BBMD_Address)
     {
-        sprintf(buf,"%u.%u.%u.%u",BBMD_ADDRESS_tobe.host.ip_address.value[0],
+        snprintf(15,buf,"%u.%u.%u.%u",BBMD_ADDRESS_tobe.host.ip_address.value[0],
                 BBMD_ADDRESS_tobe.host.ip_address.value[1],
                 BBMD_ADDRESS_tobe.host.ip_address.value[2],
                 BBMD_ADDRESS_tobe.host.ip_address.value[3]);
         setenv("BACNET_BBMD_ADDRESS",buf,1);
-        sprintf(buf,"%u",BBMD_ADDRESS_tobe.port);
+        snprintf(15,buf,"%u",BBMD_ADDRESS_tobe.port);
         setenv("BACNET_BBMD_PORT",buf,1);
         bbmd_register_as_foreign_device();
-    }
-    if (update_BBMD_TTL || update_BBMD_Address)
-    {
-        fp = fopen("/config/mbus2bacnet_bbmd.json","w");
-        fprintf(fp,"{\n\"BBMD_Address\": \"%u.%u.%u.%u\",\n",
-                BBMD_Address.address[0],
-                BBMD_Address.address[1],
-                BBMD_Address.address[2],
-                BBMD_Address.address[3]);
-        fprintf(fp,"\"BBMD_Port\": \"%u\",\n",BBMD_Address.port);
-        fprintf(fp,"\"BBMD_TimeToLive\": \"%u\"\n}\n",BBMD_TTL_Seconds);
-        fclose(fp);
     }
     update_BBMD_TTL     = false;
     update_BBMD_Address = false;
